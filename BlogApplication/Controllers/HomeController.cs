@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using BlogApplication.Models;
+using SyncoSyntax.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BlogApplication.Controllers

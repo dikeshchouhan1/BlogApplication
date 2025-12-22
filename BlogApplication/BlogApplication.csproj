@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -7,6 +7,10 @@
 		<NuGetAudit>false</NuGetAudit>
 		<UserSecretsId>57b631cb-8cc7-455f-9090-47dc9b15ecc9</UserSecretsId>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="Models\ViewModels\PostViewModel.cs" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0" />
