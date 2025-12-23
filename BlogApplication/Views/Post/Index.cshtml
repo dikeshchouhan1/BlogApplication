@@ -51,7 +51,7 @@
 
                      @(content.Length > 100
                        ? content.Substring(0, 100) + "..."
-                       : content)
+                        : content)
 
    
                     </p>
@@ -63,7 +63,7 @@
                 <div class="card-footer d-flex justify-content-between align-items-center">
                     <a class="btn btn-primary btn-sm"
                        asp-controller="Post"
-                       asp-action="Detail"
+                       asp-action="Details"
                        asp-route-id="@post.Id">
                         Read More
                     </a>

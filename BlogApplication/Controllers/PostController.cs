@@ -38,6 +38,22 @@ namespace BlogApplication.Controllers
             return View(posts); // ✅ PASS MODEL
         }
 
+        [HttpGet]
+        public IActionResult Details(int? id)
+        {
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+            var post = _context.Posts
+                .Include(p => p.Category)
+                .FirstOrDefault(p => p.Id == id);
+            if (post == null)
+                return NotFound();
+            return View(post);
+        }
+
 
         [HttpGet]
         public IActionResult Create()
@@ -57,7 +73,7 @@ namespace BlogApplication.Controllers
         }
 
         [HttpPost]
-        [HttpPost]
+       
         public async Task<IActionResult> Create(PostViewModelcs postViewModel)
         {
             // Refill Categories for View (important on validation errors)
