@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using SyncoSyntax.Models.ViewModels;
 
 namespace BlogApplication.Controllers
@@ -19,10 +20,24 @@ namespace BlogApplication.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index()
+        public IActionResult Index(int? categoryId)
         {
-            return View();
+            var postQuery = _context.Posts
+                .Include(p => p.Category)
+                .AsQueryable();
+
+            if (categoryId.HasValue)
+            {
+                postQuery = postQuery.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            var posts = postQuery.ToList();
+
+            ViewBag.Categories = _context.Categories.ToList();
+
+            return View(posts); // ✅ PASS MODEL
         }
+
 
         [HttpGet]
         public IActionResult Create()
@@ -42,16 +57,37 @@ namespace BlogApplication.Controllers
         }
 
         [HttpPost]
+        [HttpPost]
         public async Task<IActionResult> Create(PostViewModelcs postViewModel)
         {
+            // Refill Categories for View (important on validation errors)
+            postViewModel.Categories = _context.Categories
+                .Select(c => new SelectListItem
+                {
+                    Value = c.Id.ToString(),
+                    Text = c.Name
+                })
+                .ToList();
+
             if (!ModelState.IsValid)
                 return View(postViewModel);
 
-            var inputFileExtension = Path.GetExtension(postViewModel.FeatureImage.FileName).ToLower();
+            if (postViewModel.FeatureImage == null)
+            {
+                ModelState.AddModelError("", "Feature image is required");
+                return View(postViewModel);
+            }
+
+            var inputFileExtension = Path
+                .GetExtension(postViewModel.FeatureImage.FileName)
+                .ToLower();
 
             if (!_allowedExtension.Contains(inputFileExtension))
             {
-                ModelState.AddModelError("", "Invalid Image Format. Allowed: .jpg, .jpeg, .png");
+                ModelState.AddModelError(
+                    "",
+                    "Invalid Image Format. Allowed: .jpg, .jpeg, .png"
+                );
                 return View(postViewModel);
             }
 
@@ -61,8 +97,9 @@ namespace BlogApplication.Controllers
             await _context.Posts.AddAsync(postViewModel.Post);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Index");
+            return RedirectToAction(nameof(Index));
         }
+
 
         private async Task<string> UploadFiletoFolder(IFormFile file)
         {
