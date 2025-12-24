@@ -1,21 +1,19 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using SyncoSyntax.Models;
 
 namespace SyncoSyntax.Models.ViewModels
 {
-    public class PostViewModelcs
+    public class EditViewModel
     {
-        // ✅ Always initialized
-        public Post Post { get; set; } = new Post();
+        public Post Post { get; set; } = new Post(); // ✅ prevent null
 
-        // ✅ Initialized to avoid null warning
         [ValidateNever]
         public IEnumerable<SelectListItem> Categories { get; set; }
             = Enumerable.Empty<SelectListItem>();
 
-        // ✅ Optional upload
         [ValidateNever]
-        public IFormFile? FeatureImage { get; set; }
+        public IFormFile? FeatureImage { get; set; } // ✅ optional
     }
 }

@@ -1,0 +1,114 @@
+﻿@model EditViewModel
+
+@{
+    ViewData["Title"] = "Edit Post";
+}
+
+<style>
+    .content-wrapper {
+        padding: 20px;
+        max-width: 1000px;
+        margin: 0 auto;
+        font-family: sans-serif;
+    }
+</style>
+
+<div class="content-wrapper">
+    <div class="row">
+        <div class="col-6">
+            <h2>Edit Post</h2>
+        </div>
+
+        <div class="col-6 text-end">
+            <a class="btn btn-secondary" asp-action="Index" asp-controller="Post">
+                Back to List
+            </a>
+        </div>
+    </div>
+
+    <hr />
+
+    <form asp-action="Edit"
+          asp-controller="Post"
+          method="post"
+          enctype="multipart/form-data">
+
+        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+        <!-- Hidden Post Id -->
+        <input asp-for="Post.Id" type="hidden" />
+
+        <!-- Title -->
+        <div class="form-group mb-2">
+            <label asp-for="Post.Title"></label>
+            <input asp-for="Post.Title" class="form-control" />
+            <span asp-validation-for="Post.Title" class="text-danger"></span>
+        </div>
+
+        <!-- Category -->
+        <div class="form-group mb-2">
+            <label asp-for="Post.CategoryId"></label>
+            <select asp-for="Post.CategoryId"
+                    asp-items="Model.Categories"
+                    class="form-control">
+                <option value="">Select Category</option>
+            </select>
+            <span asp-validation-for="Post.CategoryId" class="text-danger"></span>
+        </div>
+
+        <!-- Author -->
+        <div class="form-group mb-2">
+            <label asp-for="Post.Author"></label>
+            <input asp-for="Post.Author" class="form-control" />
+            <span asp-validation-for="Post.Author" class="text-danger"></span>
+        </div>
+
+        <!-- Content -->
+        <div class="form-group mb-2">
+            <label asp-for="Post.Content"></label>
+            <textarea asp-for="Post.Content"
+                      class="form-control"
+                      rows="6"></textarea>
+            <span asp-validation-for="Post.Content" class="text-danger"></span>
+        </div>
+
+        <!-- Feature Image -->
+        <div class="form-group mb-3">
+            <label asp-for="FeatureImage"></label>
+            <input asp-for="FeatureImage"
+                   type="file"
+                   class="form-control" />
+        </div>
+
+        <!-- Buttons -->
+        <button type="submit" class="btn btn-primary">
+            Update
+        </button>
+
+        <a asp-action="Index"
+           asp-controller="Post"
+           class="btn btn-secondary ms-2">
+            Cancel
+        </a>
+    </form>
+</div>
+
+@section Scripts {
+
+    <!-- Validation -->
+    <partial name="_ValidationScriptsPartial" />
+
+    <!-- TinyMCE -->
+    <script src="https://cdn.tiny.cloud/1/8v7ap9no879e3vf48t9bipzno7dfbo8dgefvm9kgcttuz3nu/tinymce/7/tinymce.min.js"
+            referrerpolicy="origin"></script>
+
+    <script>
+        tinymce.init({
+            selector: 'textarea[name="Post.Content"]',
+            height: 300,
+            menubar: false,
+            plugins: 'lists link image code',
+            toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | code'
+        });
+    </script>
+}

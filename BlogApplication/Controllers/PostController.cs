@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using SyncoSyntax.Models;
 using SyncoSyntax.Models.ViewModels;
 
 namespace BlogApplication.Controllers
@@ -10,126 +11,153 @@ namespace BlogApplication.Controllers
     public class PostController : Controller
     {
         private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _webHostEnvironment; // ✅ FIX
+        private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly string[] _allowedExtension = { ".jpg", ".jpeg", ".png" };
 
-        public PostController(AppDbContext context, IWebHostEnvironment webHostEnvironment) // ✅ FIX
+        public PostController(AppDbContext context, IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _webHostEnvironment = webHostEnvironment;
         }
 
+        // ================= INDEX =================
         [HttpGet]
         public IActionResult Index(int? categoryId)
         {
-            var postQuery = _context.Posts
+            var posts = _context.Posts
                 .Include(p => p.Category)
                 .AsQueryable();
 
             if (categoryId.HasValue)
-            {
-                postQuery = postQuery.Where(p => p.CategoryId == categoryId.Value);
-            }
-
-            var posts = postQuery.ToList();
+                posts = posts.Where(p => p.CategoryId == categoryId.Value);
 
             ViewBag.Categories = _context.Categories.ToList();
-
-            return View(posts); // ✅ PASS MODEL
+            return View(posts.ToList());
         }
 
+        // ================= DETAILS =================
         [HttpGet]
         public IActionResult Details(int? id)
         {
+            if (id == null) return NotFound();
 
-            if (id == null)
-            {
-                return NotFound();
-            }
             var post = _context.Posts
                 .Include(p => p.Category)
+                .Include(p => p.Comments)
                 .FirstOrDefault(p => p.Id == id);
-            if (post == null)
-                return NotFound();
+
+            if (post == null) return NotFound();
+
             return View(post);
         }
 
-
+        // ================= CREATE =================
         [HttpGet]
         public IActionResult Create()
         {
-            var postViewModel = new PostViewModelcs
+            var vm = new PostViewModelcs
             {
                 Categories = _context.Categories
                     .Select(c => new SelectListItem
                     {
                         Value = c.Id.ToString(),
                         Text = c.Name
-                    })
-                    .ToList()
+                    }).ToList()
             };
 
-            return View(postViewModel);
+            return View(vm);
         }
 
         [HttpPost]
-       
-        public async Task<IActionResult> Create(PostViewModelcs postViewModel)
+        public async Task<IActionResult> Create(PostViewModelcs vm)
         {
-            // Refill Categories for View (important on validation errors)
-            postViewModel.Categories = _context.Categories
+            vm.Categories = _context.Categories
                 .Select(c => new SelectListItem
                 {
                     Value = c.Id.ToString(),
                     Text = c.Name
-                })
-                .ToList();
+                }).ToList();
 
             if (!ModelState.IsValid)
-                return View(postViewModel);
+                return View(vm);
 
-            if (postViewModel.FeatureImage == null)
+            if (vm.FeatureImage == null)
             {
                 ModelState.AddModelError("", "Feature image is required");
-                return View(postViewModel);
+                return View(vm);
             }
 
-            var inputFileExtension = Path
-                .GetExtension(postViewModel.FeatureImage.FileName)
-                .ToLower();
-
-            if (!_allowedExtension.Contains(inputFileExtension))
+            var ext = Path.GetExtension(vm.FeatureImage.FileName).ToLower();
+            if (!_allowedExtension.Contains(ext))
             {
-                ModelState.AddModelError(
-                    "",
-                    "Invalid Image Format. Allowed: .jpg, .jpeg, .png"
-                );
-                return View(postViewModel);
+                ModelState.AddModelError("", "Only jpg, jpeg, png allowed");
+                return View(vm);
             }
 
-            postViewModel.Post.FeatureImagePath =
-                await UploadFiletoFolder(postViewModel.FeatureImage);
+            vm.Post.FeatureImagePath =
+                await UploadFiletoFolder(vm.FeatureImage);
 
-            await _context.Posts.AddAsync(postViewModel.Post);
+            _context.Posts.Add(vm.Post);
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
         }
 
+        // ================= ADD COMMENT =================
+        [HttpPost]
+        public IActionResult AddComment([FromBody] Comment comment)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest();
 
+            // ✅ CORRECT: DateTime, not string
+            comment.CommentDate = DateTime.Now;
+
+            _context.Comments.Add(comment);
+            _context.SaveChanges();
+
+            return Json(new
+            {
+                UserName = comment.UserName,
+                Content = comment.Content,
+                CommentDate = comment.CommentDate.ToString("dd MMM yyyy")
+            });
+        }
+
+        // ================= EDIT =================
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
+            if (post == null) return NotFound();
+
+            var vm = new EditViewModel
+            {
+                Post = post,
+                Categories = _context.Categories.Select(c =>
+                    new SelectListItem
+                    {
+                        Value = c.Id.ToString(),
+                        Text = c.Name
+                    }).ToList()
+            };
+
+            return View(vm);
+        }
+
+        // ================= FILE UPLOAD =================
         private async Task<string> UploadFiletoFolder(IFormFile file)
         {
             var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
-            var wwwRootPath = _webHostEnvironment.WebRootPath; // ✅ WORKS
-            var imageFolderPath = Path.Combine(wwwRootPath, "images");
+            var path = Path.Combine(_webHostEnvironment.WebRootPath, "images");
 
-            if (!Directory.Exists(imageFolderPath))
-                Directory.CreateDirectory(imageFolderPath);
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
-            var filePath = Path.Combine(imageFolderPath, fileName);
+            var filePath = Path.Combine(path, fileName);
 
-            await using var fileStream = new FileStream(filePath, FileMode.Create);
-            await file.CopyToAsync(fileStream);
+            await using var fs = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(fs);
 
             return "/images/" + fileName;
         }

@@ -60,42 +60,42 @@
 
     <hr />
 
-    @if (Model.Comments != null && Model.Comments.Any())
-    {
-        <div id="commentSection">
-            @foreach (var comment in Model.Comments)
+    <!-- ✅ COMMENT SECTION (ALWAYS EXISTS) -->
+    <div id="commentSection">
+        @if (Model.Comments != null && Model.Comments.Any())
+        {
+            foreach (var comment in Model.Comments)
             {
                 <div class="card mb-3 shadow-sm">
                     <div class="card-body">
                         <h5 class="card-title">@comment.UserName</h5>
-                        <p class="card-text text-muted">
-                          
-                        </p>
                         <p class="card-text">@comment.Content</p>
                     </div>
                 </div>
             }
-        </div>
-    }
-    else
-    {
-        <p class="text-muted">No comments yet. Be the first to comment.</p>
-    }
+        }
+        else
+        {
+            <p id="noCommentsText" class="text-muted">
+                No comments yet. Be the first to comment.
+            </p>
+        }
+    </div>
 
     <h4>Add a Comment</h4>
 
     <form id="commentForm">
-        <div class="form-group">
-            <label for="Username">Name</label>
-            <input id="Username" name="Username" required class="form-control" />
+        <div class="form-group mb-2">
+            <label>Name</label>
+            <input id="Username" required class="form-control" />
         </div>
 
-        <div class="form-group">
-            <label for="Content">Content</label>
-            <textarea id="Content" name="Content" rows="3" required class="form-control"></textarea>
+        <div class="form-group mb-2">
+            <label>Content</label>
+            <textarea id="Content" rows="3" required class="form-control"></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary mt-2 p-2 rounded">
+        <button type="submit" class="btn btn-primary mt-2">
             Submit Comment
         </button>
     </form>
@@ -103,36 +103,37 @@
 
 @section Scripts {
     <script>
-        $(document).ready(function () {
-            $("#commentForm").on("submit", function (event) {
-                event.preventDefault();
+        $("#commentForm").submit(function (e) {
+            e.preventDefault();
 
-                var userName = $("#Username").val();
-                var content = $("#Content").val();
-                var postId = @Model.Id;
+            $.ajax({
+                url: '@Url.Action("AddComment", "Post")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    UserName: $("#Username").val(),
+                    Content: $("#Content").val(),
+                    PostId: @Model.Id
+                }),
+                success: function (res) {
 
-                $.ajax({
-                    url: '@Url.Action("AddComment", "Post")',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        Username: userName,
-                        Content: content,
-                        PostId: postId
-                    }),
-                    success: function (response) {
-                        $('#commentForm')[0].reset();
-                        $('#commentSection').append(`
-                            <div class="card mb-3 shadow-sm">
-                                <div class="card-body">
-                                    <h5 class="card-title">${response.username}</h5>
-                                    <p class="card-text text-muted">${response.commentDate}</p>
-                                    <p class="card-text">${response.content}</p>
-                                </div>
-                            </div>
-                        `);
-                    }
-                });
+                    $("#noCommentsText").remove();
+                    $("#commentForm")[0].reset();
+
+                    // ✅ NO template literal conflicts
+                    var html =
+                        '<div class="card mb-3 shadow-sm">' +
+                            '<div class="card-body">' +
+                                '<h5 class="card-title">' + res.UserName + '</h5>' +
+                                '<p class="card-text">' + res.Content + '</p>' +
+                            '</div>' +
+                        '</div>';
+
+                    $("#commentSection").append(html);
+                },
+                error: function () {
+                    alert("Failed to add comment");
+                }
             });
         });
     </script>
